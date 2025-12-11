@@ -1,11 +1,11 @@
 [package]
 name = "clap-version-flag"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 authors = [
     "Hadi Cahyadi <cumulus13@gmail.com>",
 ]
-description = "Production-ready colorful version handler for clap"
+description = "colorful version handler for clap"
 repository = "https://github.com/cumulus13/clap-version-flag"
 homepage = "https://github.com/cumulus13/clap-version-flag"
 license = "MIT OR Apache-2.0"
