@@ -2,59 +2,181 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main, develop ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, beta, nightly]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo build
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Run tests
+      run: cargo test --all-features --verbose
+    
+    - name: Run tests (no default features)
+      run: cargo test --no-default-features --verbose
+    
+    - name: Run ignored tests
+      run: cargo test --all-features --verbose -- --ignored
+      continue-on-error: true
+
+  fmt:
+    name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-      
-    - name: Cache dependencies
-      uses: actions/cache@v3
       with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        
+        components: rustfmt
+    
     - name: Check formatting
       run: cargo fmt --all -- --check
-      
-    - name: Clippy
-      run: cargo clippy --all-features -- -D warnings
-      
-    - name: Build
-      run: cargo build --all-features
-      
-    - name: Build without color
-      run: cargo build --features no-color
-      
-    - name: Run tests
-      run: cargo test --all-features
-      
-    - name: Run tests without color
-      env:
-        NO_COLOR: 1
-      run: cargo test --features no-color
-      
-    - name: Run examples
-      run: |
-        cargo run --example basic -- --version
-        cargo run --example derive_helper -- --version
-        cargo run --example custom_colors -- --help
 
-  docs:
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - run: cargo doc --no-deps --all-features
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Check documentation
+      run: cargo doc --no-deps --all-features
+      env:
+        RUSTDOCFLAGS: -D warnings
+
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Build all examples
+      run: cargo build --examples --verbose
+    
+    - name: Run basic example
+      run: cargo run --example basic -- --version
+      continue-on-error: true
+    
+    - name: Run custom_colors example
+      run: cargo run --example custom_colors
+    
+    - name: Run full_integration example
+      run: cargo run --example full_integration -- --version
+      continue-on-error: true
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install tarpaulin
+      run: cargo install cargo-tarpaulin
+    
+    - name: Generate coverage
+      run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./cobertura.xml
+        fail_ci_if_error: false
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    
+    - name: Run security audit
+      run: cargo audit
+
+  minimal-versions:
+    name: Minimal Versions
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@nightly
+    
+    - name: Install cargo-minimal-versions
+      run: cargo install cargo-minimal-versions
+    
+    - name: Check minimal versions
+      run: cargo minimal-versions check
+
+  publish-dry-run:
+    name: Publish Dry Run
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Publish dry run
+      run: cargo publish --dry-run

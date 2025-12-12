@@ -2,7 +2,7 @@
 // File: src\error.rs
 // Author: Hadi Cahyadi <cumulus13@gmail.com>
 // Date: 2025-12-12
-// Description: 
+// Description:
 // License: MIT
 
 use thiserror::Error;

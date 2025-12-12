@@ -1,43 +1,38 @@
-//! Basic example of using clap-version-flag
-//!
-//! Run with: cargo run --example basic -- --version
+// Example: Basic usage of clap-version-flag
+// Run with: cargo run --example basic -- --version
 
-use clap::{CommandFactory, Parser};
-use clap_version_flag::{colorful_version, parse_with_version};
+use clap::Parser;
+use clap_version_flag::colorful_version;
 
-#[derive(Parser, Debug)]
-#[command(name = "myapp", about = "A sample application using colorful version")]
+#[derive(Parser)]
+#[command(name = "basic-example")]
+#[command(about = "A basic example of clap-version-flag", long_about = None)]
 struct Cli {
-    /// Input file to process
-    // input: String,
+    /// Your name
+    #[arg(short, long)]
+    name: String,
 
     /// Enable verbose output
     #[arg(short, long)]
     verbose: bool,
-
-    /// Number of times to process
-    #[arg(short, long, default_value_t = 1)]
-    count: u32,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create colorful version with default colors
+fn main() {
+    // Create colorful version from Cargo.toml
     let version = colorful_version!();
 
-    // Parse command-line arguments with version handling
-    let cli: Cli = parse_with_version(Cli::command(), &version)?;
+    // Print the version (for demonstration)
+    println!("=== Colorful Version ===");
+    version.print();
+    println!();
 
-    // Normal program execution
+    // Parse command line arguments
+    let cli = Cli::parse();
+
+    // Your application logic
     if cli.verbose {
-        println!("Processing {} time(s)", cli.count);
+        println!("Verbose mode enabled!");
     }
 
-    for i in 0..cli.count {
-        println!("Processing iteration {}...", i + 1);
-        // Simulate work
-        std::thread::sleep(std::time::Duration::from_millis(50));
-    }
-
-    println!("Done!");
-    Ok(())
+    println!("Hello, {}!", cli.name);
 }

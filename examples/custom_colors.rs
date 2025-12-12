@@ -1,48 +1,61 @@
-//! Example with custom hex colors
-//!
-//! Run with: cargo run --example custom_colors -- --version
+// Example: Custom colors usage
+// Run with: cargo run --example custom_colors
 
-use clap::{CommandFactory, Parser};
-use clap_version_flag::{colorful_version, parse_with_version};
+use clap_version_flag::{ColorfulVersion, colorful_version};
 
-#[derive(Parser, Debug)]
-#[command(name = "rainbow-app", about = "An app with custom color scheme")]
-struct Cli {
-    /// Path to input file
-    // #[arg(short, long)]
-    // file: String,
+fn main() {
+    println!("=== Default Colors ===");
+    let default = colorful_version!();
+    default.print();
+    println!();
 
-    /// Output format
-    #[arg(short, long, default_value = "json")]
-    format: String,
-
-    /// Dry run - don't actually process
-    #[arg(long)]
-    dry_run: bool,
-}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create colorful version with custom hex colors
-    let version = colorful_version!(
-        "#FF5733", // Name foreground: Orange red
-        "#581845", // Name background: Dark purple
-        "#FFC300", // Version: Vivid yellow
-        "#DAF7A6"  // Author: Light lime
+    println!("=== Custom Hex Colors ===");
+    let custom_hex = colorful_version!(
+        "#FF0000", // Red foreground for name
+        "#000000", // Black background for name
+        "#00FF00", // Green for version
+        "#0000FF"  // Blue for author
     );
+    custom_hex.print();
+    println!();
 
-    // Parse command-line arguments
-    let cli: Cli = parse_with_version(Cli::command(), &version)?;
+    println!("=== Short Hex Format ===");
+    let short_hex = colorful_version!(
+        "#F00", // Red (expands to #FF0000)
+        "#000", // Black
+        "#0F0", // Green
+        "#00F"  // Blue
+    );
+    short_hex.print();
+    println!();
 
-    // Application logic
-    println!("Application: Rainbow App");
-    // println!("Input file: {}", cli.file);
-    println!("Output format: {}", cli.format);
-    println!("Dry run: {}", cli.dry_run);
+    println!("=== RGB Colors ===");
+    let rgb = ColorfulVersion::new("myapp", "1.0.0", "John Doe").with_rgb_colors(
+        (255, 165, 0), // Orange foreground
+        (75, 0, 130),  // Indigo background
+        (255, 215, 0), // Gold version
+        (0, 255, 127), // Spring green author
+    );
+    rgb.print();
+    println!();
 
-    if !cli.dry_run {
-        println!("Processing file...");
-        // Actual processing would go here
-    }
+    println!("=== High Contrast (Accessibility) ===");
+    let high_contrast = ColorfulVersion::new("myapp", "1.0.0", "John Doe")
+        .with_hex_colors("#FFFFFF", "#000000", "#FFFF00", "#00FF00")
+        .unwrap();
+    high_contrast.print();
+    println!();
 
-    Ok(())
+    println!("=== Dark Theme ===");
+    let dark = ColorfulVersion::new("myapp", "1.0.0", "John Doe")
+        .with_hex_colors("#E0E0E0", "#1A1A1A", "#FFA500", "#87CEEB")
+        .unwrap();
+    dark.print();
+    println!();
+
+    println!("=== Brand Colors Example (GitHub-like) ===");
+    let github = ColorfulVersion::new("myapp", "1.0.0", "John Doe")
+        .with_hex_colors("#FFFFFF", "#24292E", "#0366D6", "#6F42C1")
+        .unwrap();
+    github.print();
 }

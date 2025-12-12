@@ -1,30 +1,62 @@
 // Project: clap-version-flag
-// File: src\lib.rs
+// File: src/lib.rs
 // Author: Hadi Cahyadi <cumulus13@gmail.com>
 // Date: 2025-12-12
-// Description: 
+// Description: Production-ready version with all fixes
 // License: MIT
 
 //! A production-ready crate for adding colorful version output to clap applications.
 //!
 //! This crate provides utilities to override the default `-V`/`--version` flag behavior
 //! in clap applications with colorful output using hex color codes.
+//!
+//! # Examples
+//!
+//! ## Basic usage with derive
+//! ```no_run
+//! use clap::Parser;
+//! use clap_version_flag::colorful_version;
+//!
+//! #[derive(Parser)]
+//! #[command(name = "myapp")]
+//! struct Cli {
+//!     #[arg(short, long)]
+//!     input: String,
+//! }
+//!
+//! fn main() {
+//!     let version = colorful_version!();
+//!     let cli = Cli::parse();
+//!     
+//!     // Check version flag manually if needed
+//!     // version.print(); // This would print colored version
+//! }
+//! ```
+//!
+//! ## Using with custom colors
+//! ```no_run
+//! use clap_version_flag::colorful_version;
+//!
+//! let version = colorful_version!("#FF0000", "#0000FF", "#00FF00", "#FFFF00");
+//! version.print();
+//! ```
 
 mod error;
+pub mod macros;
 
 pub use error::VersionError;
 
 use clap::{Arg, ArgAction, ArgMatches, Command, FromArgMatches};
 use colored::Colorize;
-use std::process;
 use std::fmt;
+use std::process;
 
 /// Configuration for colorful version output
 #[derive(Clone, Debug)]
 pub struct ColorfulVersion {
-    package_name: &'static str,
-    version: &'static str,
-    author: &'static str,
+    package_name: String,
+    version: String,
+    author: String,
     colors: Colors,
 }
 
@@ -52,24 +84,25 @@ impl Default for Colors {
 }
 
 impl ColorfulVersion {
-    /// Creates a new ColorfulVersion using values from Cargo.toml
-    #[must_use]
-    pub fn from_cargo() -> Self {
-        Self {
-            package_name: env!("CARGO_PKG_NAME"),
-            version: env!("CARGO_PKG_VERSION"),
-            author: env!("CARGO_PKG_AUTHORS"),
-            colors: Colors::default(),
-        }
-    }
-
     /// Creates a new ColorfulVersion with custom values
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// assert_eq!(version.package_name(), "myapp");
+    /// ```
     #[must_use]
-    pub fn new(package_name: &'static str, version: &'static str, author: &'static str) -> Self {
+    pub fn new(
+        package_name: impl Into<String>,
+        version: impl Into<String>,
+        author: impl Into<String>,
+    ) -> Self {
         Self {
-            package_name,
-            version,
-            author,
+            package_name: package_name.into(),
+            version: version.into(),
+            author: author.into(),
             colors: Colors::default(),
         }
     }
@@ -84,6 +117,15 @@ impl ColorfulVersion {
     ///
     /// # Errors
     /// Returns `VersionError::InvalidHexColor` if any hex color is invalid
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe")
+    ///     .with_hex_colors("#FFFFFF", "#AA00FF", "#FFFF00", "#00FFFF")
+    ///     .expect("Invalid hex colors");
+    /// ```
     pub fn with_hex_colors(
         mut self,
         name_fg: &str,
@@ -99,6 +141,14 @@ impl ColorfulVersion {
     }
 
     /// Sets custom RGB colors for the version output
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe")
+    ///     .with_rgb_colors((255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 255, 0));
+    /// ```
     #[must_use]
     pub fn with_rgb_colors(
         mut self,
@@ -115,6 +165,14 @@ impl ColorfulVersion {
     }
 
     /// Prints the colorful version to stdout and exits the process
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use clap_version_flag::colorful_version;
+    ///
+    /// let version = colorful_version!();
+    /// version.print_and_exit(); // Prints and exits with code 0
+    /// ```
     pub fn print_and_exit(&self) -> ! {
         self.print();
         process::exit(0);
@@ -122,6 +180,14 @@ impl ColorfulVersion {
 
     /// Prints the colorful version to stdout
     /// Format: "{package_name} v{version} by {author}"
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// version.print(); // Prints colored output
+    /// ```
     pub fn print(&self) {
         let name = self
             .package_name
@@ -153,6 +219,14 @@ impl ColorfulVersion {
 
     /// Returns a plain text version string (for clap's version flag)
     /// Format: "{package_name} v{version} by {author}"
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// assert_eq!(version.as_plain_string(), "myapp v1.0.0 by John Doe");
+    /// ```
     #[must_use]
     pub fn as_plain_string(&self) -> String {
         format!("{} v{} by {}", self.package_name, self.version, self.author)
@@ -160,6 +234,15 @@ impl ColorfulVersion {
 
     /// Returns a colored version string if terminal supports colors
     /// Format: "{package_name} v{version} by {author}"
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// let colored = version.to_colored_string();
+    /// // colored string contains ANSI color codes
+    /// ```
     #[must_use]
     pub fn to_colored_string(&self) -> String {
         format!(
@@ -192,6 +275,19 @@ impl ColorfulVersion {
     ///
     /// This method should be called after parsing command-line arguments.
     /// If the version flag is found, it prints the colorful version and exits.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use clap::Command;
+    /// use clap_version_flag::{ColorfulVersion, ColorfulVersionExt};
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// let matches = Command::new("myapp")
+    ///     .with_colorful_version(&version)
+    ///     .get_matches();
+    ///     
+    /// version.check_and_exit(&matches);
+    /// ```
     pub fn check_and_exit(&self, matches: &ArgMatches) {
         if matches.get_flag("clap_version_flag_version") {
             self.print_and_exit();
@@ -199,21 +295,45 @@ impl ColorfulVersion {
     }
 
     /// Returns the package name
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// assert_eq!(version.package_name(), "myapp");
+    /// ```
     #[must_use]
     pub fn package_name(&self) -> &str {
-        self.package_name
+        &self.package_name
     }
 
     /// Returns the version
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// assert_eq!(version.version(), "1.0.0");
+    /// ```
     #[must_use]
     pub fn version(&self) -> &str {
-        self.version
+        &self.version
     }
 
     /// Returns the author
+    ///
+    /// # Examples
+    /// ```
+    /// use clap_version_flag::ColorfulVersion;
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// assert_eq!(version.author(), "John Doe");
+    /// ```
     #[must_use]
     pub fn author(&self) -> &str {
-        self.author
+        &self.author
     }
 }
 
@@ -235,6 +355,15 @@ impl fmt::Display for ColorfulVersion {
 ///
 /// # Errors
 /// Returns `VersionError::InvalidHexColor` if the hex string is invalid
+///
+/// # Examples
+/// ```
+/// # use clap_version_flag::ColorfulVersion;
+/// // This is an internal function, example shown for completeness
+/// let version = ColorfulVersion::new("app", "1.0", "author")
+///     .with_hex_colors("#FFF", "#000", "#F00", "#0F0")
+///     .unwrap();
+/// ```
 fn parse_hex(hex: &str) -> Result<(u8, u8, u8), VersionError> {
     let hex = hex.trim_start_matches('#');
 
@@ -262,41 +391,28 @@ fn parse_hex(hex: &str) -> Result<(u8, u8, u8), VersionError> {
     }
 }
 
-/// Macro for easy creation of ColorfulVersion from Cargo.toml
-///
-/// # Examples
-/// ```
-/// use clap_version_flag::colorful_version;
-///
-/// // With default colors
-/// let version = colorful_version!();
-///
-/// // With custom hex colors
-/// let version = colorful_version!("#FFFFFF", "#AA00FF", "#FFFF00", "#00FFFF");
-/// ```
-#[macro_export]
-macro_rules! colorful_version {
-    () => {
-        $crate::ColorfulVersion::from_cargo()
-    };
-
-    ($name_fg:expr, $name_bg:expr, $version:expr, $author:expr) => {
-        $crate::ColorfulVersion::from_cargo()
-            .with_hex_colors($name_fg, $name_bg, $version, $author)
-            .unwrap_or_else(|e| panic!("clap-version-flag: Invalid hex color format: {}", e))
-    };
-}
+// NOTE: Main macros are now in src/macros.rs and re-exported
+// This ensures they're available to users while keeping code organized
 
 /// Extension trait for clap::Command to add colorful version flag
 pub trait ColorfulVersionExt {
     /// Adds a version flag that will display colorful output when used
+    ///
+    /// # Examples
+    /// ```
+    /// use clap::Command;
+    /// use clap_version_flag::{ColorfulVersion, ColorfulVersionExt};
+    ///
+    /// let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+    /// let cmd = Command::new("myapp").with_colorful_version(&version);
+    /// ```
     fn with_colorful_version(self, version: &ColorfulVersion) -> Self;
 }
 
 impl ColorfulVersionExt for Command {
     fn with_colorful_version(self, _version: &ColorfulVersion) -> Self {
-        // Just add the flag - actual handling is done in parse_with_version
-        self.arg(
+        // Disable clap's built-in version flag and add our custom one
+        self.disable_version_flag(true).arg(
             Arg::new("clap_version_flag_version")
                 .short('V')
                 .long("version")
@@ -366,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_default_colors() {
-        let version = ColorfulVersion::from_cargo();
+        let version = ColorfulVersion::new("test", "1.0.0", "author");
         assert_eq!(version.colors.name_fg, (255, 255, 255));
         assert_eq!(version.colors.name_bg, (170, 0, 255));
         assert_eq!(version.colors.version_color, (255, 255, 0));
@@ -376,10 +492,13 @@ mod tests {
     #[test]
     fn test_macro() {
         let version = colorful_version!();
+        // In tests, this will use clap-version-flag's own package info
+        assert_eq!(version.package_name(), env!("CARGO_PKG_NAME"));
         assert!(!version.package_name().is_empty());
 
         let custom = colorful_version!("#FFFFFF", "#AA00FF", "#FFFF00", "#00FFFF");
         assert_eq!(custom.colors.name_fg, (255, 255, 255));
+        assert_eq!(custom.colors.name_bg, (170, 0, 255));
     }
 
     #[test]
@@ -401,25 +520,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cargo_env_format() {
-        let version = ColorfulVersion::from_cargo();
-        let plain = version.to_string();
-
-        // Should follow format: "{CARGO_PKG_NAME} v{CARGO_PKG_VERSION} by {CARGO_PKG_AUTHORS}"
-        assert!(plain.contains(" v"));
-        assert!(plain.contains(" by "));
-        assert_eq!(
-            plain,
-            format!(
-                "{} v{} by {}",
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION"),
-                env!("CARGO_PKG_AUTHORS")
-            )
-        );
-    }
-
-    #[test]
     fn test_display_trait() {
         let version = ColorfulVersion::new("testapp", "1.2.3", "Test Author");
         let display = format!("{}", version);
@@ -431,5 +531,52 @@ mod tests {
         let version = ColorfulVersion::new("myapp", "2.0.0", "John Doe");
         let plain = version.as_plain_string();
         assert_eq!(plain, "myapp v2.0.0 by John Doe");
+    }
+
+    #[test]
+    fn test_getters() {
+        let version = ColorfulVersion::new("myapp", "1.0.0", "John Doe");
+        assert_eq!(version.package_name(), "myapp");
+        assert_eq!(version.version(), "1.0.0");
+        assert_eq!(version.author(), "John Doe");
+    }
+
+    #[test]
+    fn test_custom_colors_rgb() {
+        let version = ColorfulVersion::new("test", "1.0.0", "author").with_rgb_colors(
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (255, 255, 0),
+        );
+
+        assert_eq!(version.colors.name_fg, (255, 0, 0));
+        assert_eq!(version.colors.name_bg, (0, 255, 0));
+        assert_eq!(version.colors.version_color, (0, 0, 255));
+        assert_eq!(version.colors.author_color, (255, 255, 0));
+    }
+
+    #[test]
+    fn test_custom_colors_hex() {
+        let version = ColorfulVersion::new("test", "1.0.0", "author")
+            .with_hex_colors("#FF0000", "#00FF00", "#0000FF", "#FFFF00")
+            .unwrap();
+
+        assert_eq!(version.colors.name_fg, (255, 0, 0));
+        assert_eq!(version.colors.name_bg, (0, 255, 0));
+        assert_eq!(version.colors.version_color, (0, 0, 255));
+        assert_eq!(version.colors.author_color, (255, 255, 0));
+    }
+
+    #[test]
+    fn test_short_hex() {
+        let version = ColorfulVersion::new("test", "1.0.0", "author")
+            .with_hex_colors("#F00", "#0F0", "#00F", "#FF0")
+            .unwrap();
+
+        assert_eq!(version.colors.name_fg, (255, 0, 0));
+        assert_eq!(version.colors.name_bg, (0, 255, 0));
+        assert_eq!(version.colors.version_color, (0, 0, 255));
+        assert_eq!(version.colors.author_color, (255, 255, 0));
     }
 }
