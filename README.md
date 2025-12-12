@@ -24,7 +24,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-clap-version-flag = "1.0"
+clap-version-flag = "1.0.5"
 ```
 
 ## Quick Start
@@ -286,7 +286,8 @@ Check the `examples/` directory for complete working examples:
 ```bash
 cargo run --example basic
 cargo run --example custom_colors
-cargo run --example derive_pattern
+cargo run --example derive_helper
+cargo run --example full_integration
 ```
 
 ## Why This Crate?
