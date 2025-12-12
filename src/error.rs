@@ -1,3 +1,10 @@
+// Project: clap-version-flag
+// File: src\error.rs
+// Author: Hadi Cahyadi <cumulus13@gmail.com>
+// Date: 2025-12-12
+// Description: 
+// License: MIT
+
 use thiserror::Error;
 
 /// Error type for clap-version-flag

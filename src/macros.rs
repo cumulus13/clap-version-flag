@@ -1,6 +1,13 @@
-//! Macro tambahan untuk kemudahan penggunaan
+// Project: clap-version-flag
+// File: src\macros.rs
+// Author: Hadi Cahyadi <cumulus13@gmail.com>
+// Date: 2025-12-12
+// Description: 
+// License: MIT
 
-/// Macro untuk membuat colorful version dengan konfigurasi lengkap
+//! Additional macros for ease of use
+
+/// Macro to create a colorful version with complete configuration
 #[macro_export]
 macro_rules! colorful_version_full {
     ($name:expr, $version:expr, $author:expr) => {
@@ -15,7 +22,7 @@ macro_rules! colorful_version_full {
     };
 }
 
-/// Macro untuk derive helper (jika ingin membuat proc macro nanti)
+/// Macro for derive helper (if you want to create a proc macro later)
 #[macro_export]
 macro_rules! derive_colorful_version {
     ($struct_name:ident) => {

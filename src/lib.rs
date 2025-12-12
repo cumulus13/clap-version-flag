@@ -1,3 +1,10 @@
+// Project: clap-version-flag
+// File: src\lib.rs
+// Author: Hadi Cahyadi <cumulus13@gmail.com>
+// Date: 2025-12-12
+// Description: 
+// License: MIT
+
 //! A production-ready crate for adding colorful version output to clap applications.
 //!
 //! This crate provides utilities to override the default `-V`/`--version` flag behavior
